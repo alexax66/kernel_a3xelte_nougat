@@ -142,3 +142,6 @@ GTAGS
 /*.log
 /fips_fmp_utils
 /fmp_hmac.bin
+
+# Output directory
+output/
