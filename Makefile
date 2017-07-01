@@ -243,8 +243,8 @@ CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 
 HOSTCC       = gcc
 HOSTCXX      = g++
-HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer
-HOSTCXXFLAGS = -O2
+HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -Ofast -fomit-frame-pointer -std=gnu89 -floop-nest-optimize
+HOSTCXXFLAGS = -Ofast
 
 # Decide whether to build built-in, modular, or both.
 # Normally, just do built-in.
@@ -327,7 +327,7 @@ include $(srctree)/scripts/Kbuild.include
 # Make variables (CC, etc...)
 
 AS		= $(CROSS_COMPILE)as
-LD		= $(CROSS_COMPILE)ld
+LD		= $(CROSS_COMPILE)ld.bfd
 CC		= $(CROSS_COMPILE)gcc
 CPP		= $(CC) -E
 AR		= $(CROSS_COMPILE)ar
@@ -376,16 +376,25 @@ LINUXINCLUDE    := \
 
 KBUILD_CPPFLAGS := -D__KERNEL__
 
-KBUILD_CFLAGS := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
-				-fno-strict-aliasing -fno-common \
-				-Wno-format-security -Wno-unused \
-				-fno-delete-null-pointer-checks \
-				-Wno-maybe-uninitialized \
-				-Wno-sizeof-pointer-memaccess \
-				-Wno-error=unused-parameter -Wno-error=unused-but-set-variable \
-				-fno-exceptions -Wno-multichar -Wno-sequence-point \
-				-fno-delete-null-pointer-checks \
-				-std=gnu89
+KBUILD_CFLAGS   := -w -Wstrict-prototypes -Wno-trigraphs \
+		    -fno-strict-aliasing -finline-functions -fno-common \
+		    -Werror-implicit-function-declaration -fno-pic \
+		    -Wno-format-security -ffast-math \
+		    -fno-delete-null-pointer-checks \
+		    -mcpu=cortex-a53 \
+		    -march=armv8-a+crc \
+		    -mtune=cortex-a53 \
+		    -fdiagnostics-show-option \
+		    -pipe  -funswitch-loops -fpredictive-commoning \
+		    -fgcse-after-reload \
+		    -ftree-loop-distribution -ftree-loop-if-convert \
+		    -fivopts -fipa-pta -fira-hoist-pressure \
+		    -fmodulo-sched -fmodulo-sched-allow-regmoves \
+		    -fbranch-target-load-optimize -fsingle-precision-constant \
+		    -Werror -Wno-error=unused-variable -Wno-error=unused-function \
+		    -std=gnu89 -Wno-discarded-array-qualifiers \
+		    -Wno-logical-not-parentheses -Wno-array-bounds \
+		    -Wno-switch -Wno-unused-variable
 
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
@@ -583,13 +592,23 @@ endif # $(dot-config)
 # Defaults to vmlinux, but the arch makefile usually adds further targets
 all: vmlinux
 
-ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
-KBUILD_CFLAGS	+= -Os $(call cc-disable-warning,maybe-uninitialized,)
-else
-KBUILD_CFLAGS	+= -O2
-endif
+KBUILD_CFLAGS	+= $(call cc-option,-fno-delete-null-pointer-checks,)
+KBUILD_CFLAGS	+= $(call cc-disable-warning,maybe-uninitialized,)
 
 include $(srctree)/arch/$(SRCARCH)/Makefile
+
+ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
+KBUILD_CFLAGS	+= -Ofast
+else
+KBUILD_CFLAGS	+= -Ofast
+endif
+
+ifdef CONFIG_KERNEL_OPTIMIZATION
+KBUILD_CFLAGS	+= -Ofast -pipe
+endif
+
+# Tell gcc to never replace conditional load with a non-conditional one
+KBUILD_CFLAGS	+= $(call cc-option,--param=allow-store-data-races=0)
 
 ifdef CONFIG_READABLE_ASM
 # Disable optimizations that make assembler listings hard to read.
@@ -673,6 +692,12 @@ KBUILD_CFLAGS	+= $(call cc-option,-fno-strict-overflow)
 
 # conserve stack if available
 KBUILD_CFLAGS   += $(call cc-option,-fconserve-stack)
+
+# disallow errors like 'EXPORT_GPL(foo);' with missing header
+KBUILD_CFLAGS   += $(call cc-option,-Werror=implicit-int)
+
+# require functions to have arguments in prototypes, not empty 'int foo()'
+KBUILD_CFLAGS   += $(call cc-option,-Werror=strict-prototypes)
 
 # use the deterministic mode of AR if available
 KBUILD_ARFLAGS := $(call ar-option,D)
