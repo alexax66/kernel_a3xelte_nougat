@@ -1,21 +1,20 @@
-# kernel_a3xelte_nougat
+# Nougat TouchWiz kernel for a3xelte
 ## Warning: this is for Nougat stock and based on TouchWiz custom ROMs only
+How to build this kernel?
 
-_How to build?_
-
-- Download this toolchain: `aarch64-cortex_a53-linux-gnueabi` here: https://www.androidfilehost.com/?fid=457095661767130542 and extract it
-	- Example: `/opt/toolchains/aarch64-cortex_a53-linux-gnueabi-GNU-6.3.0/`
+1. Download this toolchain: `aarch64-cortex_a53-linux-gnueabi` here: https://www.androidfilehost.com/?fid=457095661767130542 and extract it
+	- Example here: `/opt/toolchains/aarch64-cortex_a53-linux-gnueabi-GNU-6.3.0/`
 	
 - Edit `Makefile`
 	- Search `CROSS_COMPILE` variable
 	- Replace value by the bin prefix of toolchain
 		- Like this: 
 		`CROSS_COMPILE	?= /opt/toolchains/aarch64-cortex_a53-linux-gnueabi-GNU-6.3.0/bin/aarch64-cortex_a53-linux-gnueabi-` 
-		(don't forgot the **dash** at end)
+		(don't forget the "-" dash at end)
 		
 - Run `build_kernel.sh`
 
-_Outputs_
+Outputs: 
 
 You can find output in :
 - Kernel : arch/arm64/boot/Image
@@ -23,7 +22,7 @@ You can find output in :
 	
 - module : drivers/*/built-in.o
 
-_How to clean?_
+How to clean?
 
 Run this: `make mrproper`
 Or: `make clean`
